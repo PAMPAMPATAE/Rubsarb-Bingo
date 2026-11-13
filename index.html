@@ -1,0 +1,2152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character & Party Host Bingo - Rubsarb Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka, Plus Jakarta Sans & Prompt/Kanit for crisp Thai + English readability -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Kanit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'Prompt', 'Kanit', sans-serif;
+            background: radial-gradient(circle at top left, #2e1065, #1e1b4b 45%, #0f172a 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .font-display {
+            font-family: 'Fredoka', 'Kanit', sans-serif;
+        }
+
+        /* Custom subtle grid pattern overlay */
+        .bg-pattern {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* Game Show 3D Tactile Buttons */
+        .btn-3d {
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+        }
+        .btn-3d:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+        }
+        .btn-3d:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Bingo Tile Animations */
+        .bingo-tile {
+            transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bingo-tile:hover {
+            transform: translateY(-2px) scale(1.015);
+        }
+        .bingo-tile:active {
+            transform: scale(0.96);
+        }
+
+        /* Stamp Pop-in Animation */
+        @keyframes stampPop {
+            0% {
+                transform: scale(2.4) rotate(-25deg);
+                opacity: 0;
+            }
+            65% {
+                transform: scale(0.9) rotate(4deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        .animate-stamp {
+            animation: stampPop 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Winning Line & Latest Drawn Number Pulse Glow */
+        @keyframes winGlow {
+            0%, 100% {
+                box-shadow: 0 0 14px rgba(250, 204, 21, 0.7), inset 0 0 10px rgba(250, 204, 21, 0.4);
+                border-color: #facc15;
+            }
+            50% {
+                box-shadow: 0 0 26px rgba(250, 204, 21, 1), inset 0 0 18px rgba(250, 204, 21, 0.75);
+                border-color: #fef08a;
+            }
+        }
+        .winning-tile {
+            animation: winGlow 1.5s infinite ease-in-out;
+            background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+        }
+
+        @keyframes latestNumberPulse {
+            0%, 100% {
+                transform: scale(1.05);
+                box-shadow: 0 0 16px rgba(250, 204, 21, 0.85);
+            }
+            50% {
+                transform: scale(1.12);
+                box-shadow: 0 0 28px rgba(236, 72, 153, 0.95);
+            }
+        }
+        .latest-called-cell {
+            animation: latestNumberPulse 1.4s infinite ease-in-out;
+            z-index: 10;
+        }
+
+        /* Wheel Pointer Bounce */
+        @keyframes pointerTick {
+            0% { transform: translateX(-50%) rotate(0deg); }
+            40% { transform: translateX(-50%) rotate(-18deg); }
+            100% { transform: translateX(-50%) rotate(0deg); }
+        }
+        .pointer-ticking {
+            animation: pointerTick 0.1s ease-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-pattern antialiased selection:bg-pink-500 selection:text-white">
+
+    <!-- Lightweight Built-in Confetti Canvas Overlay -->
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+    <!-- Main Container -->
+    <div class="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-7 flex flex-col items-center">
+
+        <!-- Header / Game Show Marquee -->
+        <header class="w-full text-center mb-4 sm:mb-6 relative">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-xs sm:text-sm font-bold tracking-wider uppercase mb-2 shadow-sm">
+                <span>🎬</span> Rubsarb Party Edition <span>🎲</span>
+            </div>
+            <h1 class="font-display text-3xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 drop-shadow-sm">
+                RUBSARB BINGO PARTY
+            </h1>
+            <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-xl mx-auto">
+                Play with a 5×5 Character Board or launch <strong>Party Host Mode</strong> to spin the wheel and call numbers!
+            </p>
+
+            <!-- Sound Toggle Top-Right -->
+            <button id="soundToggleBtn" onclick="toggleSound()" title="Toggle Sound Effects"
+                class="mt-3 sm:mt-0 sm:absolute sm:right-0 sm:top-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/70 text-xs font-semibold text-slate-200 transition">
+                <span id="soundIcon">🔊</span>
+                <span id="soundLabel">SFX On</span>
+            </button>
+        </header>
+
+        <!-- TOP APP VIEW SWITCHER: Player 5x5 Board vs Party Host Mode -->
+        <nav aria-label="Primary Mode Switcher" class="w-full max-w-2xl mb-5 bg-slate-950/80 backdrop-blur-md p-1.5 rounded-2xl border-2 border-indigo-500/40 shadow-xl grid grid-cols-2 gap-1.5">
+            <button id="viewPlayerBtn" onclick="switchAppView('player')"
+                class="py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-display text-sm sm:text-base font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+                <span>🎴</span>
+                <span>Player Board (5×5)</span>
+            </button>
+            <button id="viewHostBtn" onclick="switchAppView('host')"
+                class="py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-display text-sm sm:text-base font-bold transition flex items-center justify-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800/60">
+                <span>🎡</span>
+                <span>Party Host Mode (Wheel)</span>
+            </button>
+        </nav>
+
+        <!-- =====================================================================
+             VIEW 1: PLAYER BOARD (5x5 CHARACTERS & FAMOUS PEOPLE)
+             ===================================================================== -->
+        <section id="playerViewSection" class="w-full flex flex-col items-center">
+            <!-- Mode Switcher & Status Bar -->
+            <div class="w-full max-w-4xl bg-slate-900/75 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 sm:p-4 mb-5 shadow-xl">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <!-- Sub-mode Pill -->
+                    <div class="flex items-center gap-2 bg-slate-950/70 p-1.5 rounded-xl border border-slate-800 w-full sm:w-auto justify-center">
+                        <button id="tabSetupBtn" onclick="switchMode('setup')"
+                            class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow">
+                            <span>✏️</span> Setup Board
+                        </button>
+                        <button id="tabPlayBtn" onclick="switchMode('play')"
+                            class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+                            <span>🎯</span> Play Mode
+                        </button>
+                    </div>
+
+                    <!-- Live Scoreboard -->
+                    <div id="scoreDisplay" class="flex items-center gap-3 sm:gap-5 bg-slate-800/70 px-4 py-2 rounded-xl border border-slate-700/70 w-full sm:w-auto justify-around sm:justify-end">
+                        <div class="text-center">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Stamped</div>
+                            <div id="stampedCount" class="font-display text-lg sm:text-xl font-bold text-cyan-300 leading-tight">0 / 25</div>
+                        </div>
+                        <div class="h-7 w-px bg-slate-700"></div>
+                        <div class="text-center">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Bingo Lines</div>
+                            <div id="bingoLinesCount" class="font-display text-lg sm:text-xl font-bold text-amber-400 leading-tight">0</div>
+                        </div>
+                        <div class="h-7 w-px bg-slate-700"></div>
+                        <div class="text-center">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Goal</div>
+                            <select id="targetLinesSelect" onchange="evaluateBoard(false)"
+                                class="bg-slate-900 text-pink-300 font-display font-bold text-sm sm:text-base rounded-lg px-2 py-0.5 border border-slate-600 focus:outline-none focus:border-pink-400 cursor-pointer">
+                                <option value="1">1 Line</option>
+                                <option value="2">2 Lines</option>
+                                <option value="3" selected>3 Lines</option>
+                                <option value="5">5 Lines</option>
+                                <option value="12">Blackout (All)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SETUP CONTROLS PANEL -->
+                <div id="setupControls" class="mt-4 pt-4 border-t border-slate-800 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <!-- Preset Theme Selector -->
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <label for="presetSelect" class="text-xs font-bold uppercase tracking-wider text-indigo-300">Theme Pack:</label>
+                            <select id="presetSelect" onchange="loadPresetTheme(this.value)"
+                                class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-750 text-white text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 border border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                                <option value="rubsarb">🔥 Rubsarb & Thai Pop Culture</option>
+                                <option value="kamenRider">🦗 Kamen Rider & Tokusatsu</option>
+                                <option value="anime">⚔️ Iconic Anime Characters</option>
+                                <option value="thaiCelebs">🇹🇭 Famous Thai Celebrities & Streamers</option>
+                                <option value="hollywood">🎬 Hollywood Legends & Heroes</option>
+                                <option value="videogames">🎮 Video Game All-Stars</option>
+                            </select>
+                        </div>
+
+                        <!-- Quick Setup Action Buttons -->
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                            <button onclick="openBulkModal()"
+                                class="btn-3d px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-slate-500/50">
+                                <span>📋</span> Paste List
+                            </button>
+                            <button onclick="shuffleBoard()"
+                                class="btn-3d px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
+                                <span>🔀</span> Shuffle Board
+                            </button>
+                            <button onclick="clearBoard()"
+                                class="btn-3d px-3 py-2 rounded-xl bg-rose-900/80 hover:bg-rose-800 text-rose-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-rose-700/60">
+                                <span>🗑️</span> Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Center FREE Space Toggle & Start Game CTA -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-indigo-950/50 border border-indigo-500/30 rounded-xl p-3">
+                        <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                            <input type="checkbox" id="freeSpaceToggle" checked onchange="toggleFreeSpace()"
+                                class="w-4 h-4 rounded accent-pink-500 cursor-pointer">
+                            <span class="text-xs sm:text-sm font-semibold text-slate-200">
+                                Use center tile as <span class="text-amber-300 font-bold">★ FREE SPACE ★</span>
+                            </span>
+                        </label>
+
+                        <button onclick="startGame()"
+                            class="btn-3d w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-display text-base sm:text-lg font-bold tracking-wide flex items-center justify-center gap-2 shadow-lg">
+                            <span>🚀</span> LOCK IN & START BINGO!
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PLAY CONTROLS PANEL (Hidden during Setup) -->
+                <div id="playControls" class="hidden mt-4 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs sm:text-sm text-slate-300 font-medium flex items-center gap-2">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Tap any character square when they appear or get mentioned!
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <button onclick="resetMarks()"
+                            class="btn-3d flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5">
+                            <span>🔄</span> Reset Marks
+                        </button>
+                        <button onclick="switchMode('setup')"
+                            class="btn-3d flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5">
+                            <span>✏️</span> New Board / Edit Names
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Celebratory BINGO! Banner -->
+            <div id="bingoBanner" class="hidden w-full max-w-4xl mb-5 rounded-2xl bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 p-1 shadow-2xl transform transition-all">
+                <div class="bg-slate-950/90 backdrop-blur-md rounded-xl px-4 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl sm:text-4xl animate-bounce">🏆</span>
+                        <div>
+                            <h2 id="bingoBannerTitle" class="font-display text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-pink-400">
+                                BINGO! 1 LINE COMPLETED!
+                            </h2>
+                            <p id="bingoBannerSubtitle" class="text-xs sm:text-sm text-slate-300">
+                                Awesome job! Keep playing for more lines or shout BINGO in voice chat!
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="triggerConfettiBlast()"
+                        class="btn-3d px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-display font-bold text-sm shrink-0">
+                        🎉 Celebrate Again!
+                    </button>
+                </div>
+            </div>
+
+            <!-- B-I-N-G-O Column Header Letters -->
+            <div class="w-full max-w-2xl grid grid-cols-5 gap-1.5 sm:gap-2.5 mb-2 px-1">
+                <div class="bg-gradient-to-b from-rose-500 to-rose-700 rounded-xl py-1.5 sm:py-2 text-center font-display text-xl sm:text-3xl font-bold text-white shadow-md border-b-4 border-rose-900">B</div>
+                <div class="bg-gradient-to-b from-amber-400 to-amber-600 rounded-xl py-1.5 sm:py-2 text-center font-display text-xl sm:text-3xl font-bold text-slate-950 shadow-md border-b-4 border-amber-800">I</div>
+                <div class="bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-xl py-1.5 sm:py-2 text-center font-display text-xl sm:text-3xl font-bold text-slate-950 shadow-md border-b-4 border-emerald-800">N</div>
+                <div class="bg-gradient-to-b from-cyan-400 to-cyan-600 rounded-xl py-1.5 sm:py-2 text-center font-display text-xl sm:text-3xl font-bold text-slate-950 shadow-md border-b-4 border-cyan-800">G</div>
+                <div class="bg-gradient-to-b from-purple-500 to-purple-700 rounded-xl py-1.5 sm:py-2 text-center font-display text-xl sm:text-3xl font-bold text-white shadow-md border-b-4 border-purple-900">O</div>
+            </div>
+
+            <!-- 5x5 BINGO BOARD GRID -->
+            <main id="bingoGrid" class="w-full max-w-2xl grid grid-cols-5 gap-1.5 sm:gap-2.5 p-2 sm:p-3 bg-slate-900/80 border-2 border-indigo-500/40 rounded-2xl sm:rounded-3xl shadow-2xl">
+                <!-- 25 Tiles dynamically injected via JavaScript -->
+            </main>
+
+            <!-- Footer Tip -->
+            <div class="mt-5 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                <span>💡 Tip: Each player should click <strong>Shuffle Board</strong> before locking in so everyone gets a unique layout!</span>
+                <button onclick="copyBoardToClipboard()" class="text-indigo-300 hover:text-indigo-200 underline font-semibold">
+                    📋 Copy Text Board for Chat
+                </button>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             VIEW 2: PARTY HOST MODE (NUMBER CALLER & SPINNING WHEEL)
+             ===================================================================== -->
+        <section id="hostViewSection" class="hidden w-full max-w-5xl space-y-5">
+
+            <!-- Host Top Control Bar: Adjustable Range & Presets -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-xl">
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+                    <!-- Range Inputs -->
+                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 w-full lg:w-auto">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                            <span>⚙️</span> Number Range:
+                        </span>
+                        <div class="flex items-center gap-1.5 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-700">
+                            <label for="hostStartInput" class="text-xs text-slate-400 font-semibold">From</label>
+                            <input type="number" id="hostStartInput" value="1" min="0" max="999"
+                                class="w-16 bg-slate-800 text-white font-display font-bold text-center text-sm sm:text-base rounded-lg py-1 border border-slate-600 focus:outline-none focus:border-amber-400">
+                            <label for="hostEndInput" class="text-xs text-slate-400 font-semibold">To</label>
+                            <input type="number" id="hostEndInput" value="60" min="1" max="999"
+                                class="w-16 bg-slate-800 text-white font-display font-bold text-center text-sm sm:text-base rounded-lg py-1 border border-slate-600 focus:outline-none focus:border-amber-400">
+                        </div>
+                        <button onclick="requestApplyHostRange()"
+                            class="btn-3d px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold">
+                            Apply Range
+                        </button>
+                    </div>
+
+                    <!-- Quick Range Presets -->
+                    <div class="flex flex-wrap items-center justify-center gap-1.5 w-full lg:w-auto">
+                        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold mr-1">Presets:</span>
+                        <button onclick="setHostPresetRange(1, 30)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/80 text-xs font-bold text-slate-200 transition">1–30</button>
+                        <button onclick="setHostPresetRange(1, 50)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/80 text-xs font-bold text-slate-200 transition">1–50</button>
+                        <button onclick="setHostPresetRange(1, 60)" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/60 text-xs font-bold text-amber-300 transition">1–60 (Default)</button>
+                        <button onclick="setHostPresetRange(1, 75)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/80 text-xs font-bold text-slate-200 transition">1–75</button>
+                        <button onclick="setHostPresetRange(1, 90)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/80 text-xs font-bold text-slate-200 transition">1–90</button>
+                    </div>
+                </div>
+
+                <!-- Inline Range Confirmation Prompt (Replaces window.confirm cleanly) -->
+                <div id="hostConfirmBar" class="hidden mt-3 pt-3 border-t border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-2 bg-amber-950/40 px-3.5 py-2.5 rounded-xl">
+                    <span id="hostConfirmText" class="text-xs sm:text-sm text-amber-200 font-semibold">
+                        Reset current called numbers and apply the new range?
+                    </span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="cancelHostConfirm()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Cancel</button>
+                        <button id="hostConfirmYesBtn" class="btn-3d px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold">Yes, Reset & Apply</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Host Stage: Left = Spinning Wheel, Right = Host 5x5 Number Card -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+                <!-- LEFT COLUMN (5 cols on lg): Spinning Wheel & Latest Call Spotlight -->
+                <div class="lg:col-span-5 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col items-center">
+                    
+                    <!-- Latest Drawn Number Banner -->
+                    <div class="w-full flex items-center justify-between gap-3 bg-slate-950/80 border border-slate-800 rounded-2xl p-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div id="hostLatestBadge"
+                                class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-700 flex items-center justify-center font-display text-3xl sm:text-4xl font-extrabold text-slate-400 shadow-inner shrink-0">
+                                ?
+                            </div>
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider text-amber-300 font-bold">Latest Drawn</div>
+                                <div id="hostLatestLabel" class="text-xs sm:text-sm text-slate-300 font-semibold mt-0.5">
+                                    Ready to spin!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HOST SECRET HINT CARD (Revealed after every wheel spin!) -->
+                    <div id="hostHintCard" class="w-full bg-gradient-to-br from-indigo-950/90 via-purple-950/80 to-slate-950 border-2 border-pink-500/40 rounded-2xl p-3.5 mb-4 shadow-lg relative overflow-hidden">
+                        <div class="flex items-center justify-between gap-2 mb-1.5">
+                            <span class="text-[11px] uppercase tracking-wider text-pink-300 font-extrabold flex items-center gap-1.5">
+                                <span>💡</span> Host Clue / Hint (คำใบ้รอบนี้)
+                            </span>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="rerollHostHint()" title="Pick another random hint"
+                                    class="px-2 py-0.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/35 border border-pink-400/40 text-[11px] font-bold text-pink-200 transition">
+                                    🎲 Re-roll
+                                </button>
+                                <button onclick="openHostHintModal()" title="Edit or add custom hints"
+                                    class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-slate-200 transition">
+                                    ✏️ Edit Pool
+                                </button>
+                            </div>
+                        </div>
+                        <div id="hostCurrentHintText" class="font-display text-lg sm:text-xl font-bold text-amber-300 leading-snug min-h-[2rem] flex items-center">
+                            Spin the wheel to reveal a random hint!
+                        </div>
+                        <div class="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                            <span id="hostHintPoolCounter">Hints left in pool: 100 / 100</span>
+                            <button onclick="resetHostHintPool()" class="text-indigo-300 hover:text-indigo-200 underline font-semibold">Reset Hints</button>
+                        </div>
+                    </div>
+
+                    <!-- Responsive Spinning Wheel Canvas Wrapper -->
+                    <div id="wheelWrapper" class="relative w-full max-w-[330px] aspect-square flex items-center justify-center my-1">
+                        <!-- Top Pointer Triangle -->
+                        <div id="wheelPointer" class="absolute -top-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none drop-shadow-[0_4px_6px_rgba(0,0,0,0.75)]">
+                            <svg width="34" height="38" viewBox="0 0 34 38" fill="none">
+                                <path d="M17 36L2 6C1.2 4.4 2.4 2.5 4.2 2.5H29.8C31.6 2.5 32.8 4.4 32 6L17 36Z" fill="#facc15" stroke="#0f172a" stroke-width="3"/>
+                            </svg>
+                        </div>
+                        <canvas id="hostWheelCanvas" class="w-full h-full rounded-full shadow-[0_0_35px_rgba(79,70,229,0.45)]"></canvas>
+                    </div>
+
+                    <!-- Spin Button & Wheel Elimination Status -->
+                    <div class="w-full mt-4 space-y-3">
+                        <button id="spinWheelBtn" onclick="spinHostWheel()"
+                            class="btn-3d w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 hover:from-amber-300 hover:to-pink-400 text-slate-950 font-display text-xl sm:text-2xl font-extrabold tracking-wide flex items-center justify-center gap-2.5 shadow-xl">
+                            <span>🎡</span>
+                            <span>SPIN WHEEL</span>
+                        </button>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-200 bg-slate-950/75 px-3.5 py-2.5 rounded-xl border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span id="wheelRemainingBadge" class="font-bold text-cyan-300">Remaining on Wheel: 60 / 60</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="wheelEliminatedBadge" class="font-bold text-rose-400">Eliminated: 0</span>
+                                <span class="hidden sm:inline text-[11px] text-slate-400 font-mono">[Spacebar]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN (7 cols on lg): Host 5x5 Random Number Bingo Card & Called History -->
+                <div class="lg:col-span-7 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col">
+                    
+                    <!-- Board Header & Stats -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
+                        <div>
+                            <h2 class="font-display text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                                <span>🎯</span> Host 5×5 Number Bingo
+                            </h2>
+                            <p class="text-[11px] sm:text-xs text-slate-400">
+                                Auto-marks spun numbers! Tap any square to toggle manually.
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-center">
+                                <div class="text-[9px] uppercase text-slate-400 font-bold">Stamped</div>
+                                <div id="hostCardStampedCount" class="font-display text-sm sm:text-base font-bold text-cyan-300 leading-tight">1 / 25</div>
+                            </div>
+                            <div class="bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-center">
+                                <div class="text-[9px] uppercase text-slate-400 font-bold">Lines</div>
+                                <div id="hostBingoLinesCount" class="font-display text-sm sm:text-base font-bold text-amber-400 leading-tight">0</div>
+                            </div>
+                            <button onclick="shuffleHostBingoCard(true)"
+                                class="btn-3d px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-extrabold flex items-center gap-1">
+                                <span>🔀</span> Shuffle 5×5
+                            </button>
+                            <button onclick="requestResetHostBoard()"
+                                class="btn-3d px-2.5 py-2 rounded-xl bg-rose-900/80 hover:bg-rose-800 text-rose-200 border border-rose-700/60 text-xs font-bold">
+                                🔄 Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Host FREE Space Toggle & Celebratory Banner -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3 bg-indigo-950/45 border border-indigo-500/30 rounded-xl px-3 py-2">
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="hostFreeSpaceToggle" checked onchange="toggleHostFreeSpace()"
+                                class="w-4 h-4 rounded accent-pink-500 cursor-pointer">
+                            <span class="text-xs font-semibold text-slate-200">
+                                Center <span class="text-amber-300 font-bold">★ FREE ★</span> space
+                            </span>
+                        </label>
+                        <div id="hostBingoStatusBadge" class="hidden px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-pink-500 text-slate-950 font-display text-xs sm:text-sm font-extrabold shadow animate-bounce">
+                            🏆 HOST BINGO! 1 LINE!
+                        </div>
+                    </div>
+
+                    <!-- B-I-N-G-O Header for Host 5x5 Card -->
+                    <div class="w-full max-w-md mx-auto grid grid-cols-5 gap-1.5 sm:gap-2 mb-1.5">
+                        <div class="bg-gradient-to-b from-rose-500 to-rose-700 rounded-lg py-1 text-center font-display text-base sm:text-xl font-bold text-white shadow">B</div>
+                        <div class="bg-gradient-to-b from-amber-400 to-amber-600 rounded-lg py-1 text-center font-display text-base sm:text-xl font-bold text-slate-950 shadow">I</div>
+                        <div class="bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-lg py-1 text-center font-display text-base sm:text-xl font-bold text-slate-950 shadow">N</div>
+                        <div class="bg-gradient-to-b from-cyan-400 to-cyan-600 rounded-lg py-1 text-center font-display text-base sm:text-xl font-bold text-slate-950 shadow">G</div>
+                        <div class="bg-gradient-to-b from-purple-500 to-purple-700 rounded-lg py-1 text-center font-display text-base sm:text-xl font-bold text-white shadow">O</div>
+                    </div>
+
+                    <!-- Host 5x5 Random Number Bingo Grid -->
+                    <div id="hostMasterGrid" class="w-full max-w-md mx-auto grid grid-cols-5 gap-1.5 sm:gap-2 p-2 bg-slate-950/75 border-2 border-indigo-500/40 rounded-2xl shadow-inner mb-4">
+                        <!-- 25 Random Number Tiles dynamically rendered -->
+                    </div>
+
+                    <!-- All Called / Eliminated Numbers History Log -->
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1.5">
+                                <span>📜</span> Called Numbers & Hints Log (Eliminated from Wheel)
+                            </span>
+                            <span id="hostHistoryTotalBadge" class="text-[11px] font-bold text-slate-400">0 drawn</span>
+                        </div>
+                        <div id="hostHistoryStrip" class="flex flex-wrap items-center gap-1.5 max-h-32 overflow-y-auto pr-1">
+                            <span class="text-xs text-slate-500 italic">No numbers drawn yet — spin the wheel!</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- DRAMATIC DRAWN NUMBER + HINT SPOTLIGHT MODAL (Auto-dismisses or click anywhere) -->
+    <div id="drawnSpotlightModal" onclick="closeDrawnSpotlight()"
+        class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer">
+        <div onclick="event.stopPropagation(); closeDrawnSpotlight();"
+            class="animate-stamp bg-gradient-to-br from-amber-400 via-pink-500 to-indigo-600 p-1.5 rounded-3xl shadow-[0_0_60px_rgba(250,204,21,0.65)] max-w-md w-full text-center">
+            <div class="bg-slate-950 rounded-[20px] px-6 py-7 flex flex-col items-center">
+                <span class="text-xs uppercase tracking-widest text-amber-300 font-extrabold mb-1">🎉 NUMBER & HINT DRAWN! 🎉</span>
+                <div id="spotlightBingoLetter" class="text-sm font-bold text-pink-400 mb-1">BINGO CALL</div>
+                <div id="spotlightNumberValue" class="font-display text-7xl sm:text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-500 leading-none my-1">
+                    42
+                </div>
+                <div class="w-full mt-3 pt-3 border-t border-slate-800">
+                    <div class="text-[10px] uppercase tracking-widest text-pink-300 font-bold mb-1">💡 คำใบ้ (HOST HINT)</div>
+                    <div id="spotlightHintText" class="font-display text-xl sm:text-2xl font-bold text-white leading-snug px-2">
+                        นักแสดงต่างชาติ
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 mt-4">Tap anywhere to continue</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOST HINT POOL EDITOR MODAL -->
+    <div id="hostHintModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-pink-500/50 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-display text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span>💡</span> Edit Host Hint Pool
+                </h3>
+                <button onclick="closeHostHintModal()" class="text-slate-400 hover:text-white text-xl font-bold px-2">✕</button>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-300 mb-3">
+                Customize the pool of random clues (one hint per line). After each wheel spin, the host gets a random clue from this list!
+            </p>
+            <textarea id="hostHintPoolTextarea" rows="9"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-400"></textarea>
+            <div class="flex items-center justify-between mt-3 gap-2">
+                <button onclick="restoreDefaultHostHints()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold">
+                    ↺ Restore Defaults
+                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeHostHintModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-bold">
+                        Cancel
+                    </button>
+                    <button onclick="saveHostHintPool()" class="btn-3d px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs sm:text-sm font-bold">
+                        Save Hints ✨
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BULK PASTE MODAL (Player Board) -->
+    <div id="bulkModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-indigo-500/50 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-display text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span>📋</span> Paste Character List
+                </h3>
+                <button onclick="closeBulkModal()" class="text-slate-400 hover:text-white text-xl font-bold px-2">✕</button>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-300 mb-3">
+                Paste up to 25 names (one per line or separated by commas). Tip: Add clarifying context in parentheses like <span class="text-amber-300 font-semibold">"หนู (นายก)"</span> or <span class="text-amber-300 font-semibold">"Kamen Rider Decade (ดีเคด)"</span>!
+            </p>
+            <textarea id="bulkTextarea" rows="8"
+                placeholder="จอร์จ (Rubsarb)&#10;หนู (นายก)&#10;Kamen Rider Decade (ดีเคด)&#10;Kamen Rider Kabuto (คาบูโตะ)&#10;ลูฟี่ (One Piece)..."
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"></textarea>
+            <div class="flex items-center justify-between mt-4 gap-3">
+                <label class="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" id="shuffleOnPasteCheckbox" checked class="rounded accent-indigo-500">
+                    <span>Randomize order on fill</span>
+                </label>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeBulkModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-bold">
+                        Cancel
+                    </button>
+                    <button onclick="applyBulkPaste()" class="btn-3d px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold">
+                        Fill Board ✨
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Non-blocking Toast Notification -->
+    <div id="toastContainer" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 translate-y-4">
+        <div class="bg-slate-900/95 border border-indigo-400/50 text-white px-4 py-2.5 rounded-full shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 backdrop-blur-md">
+            <span>✨</span>
+            <span id="toastText">Notification</span>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * PRESET CHARACTER & CELEBRITY PACKS (WITH SPECIFIC CLARIFYING TAGS)
+         * ============================================================================
+         */
+        const PRESET_THEMES = {
+            rubsarb: [
+                "จอร์จ (Rubsarb)", "อิสระ (Rubsarb)", "จ็อบ (Rubsarb)", "เจ๋ง (Rubsarb)", "ต๊อบ (Rubsarb)",
+                "หนู (นายก)", "พี่แน็ก ชาลี (นักแสดง)", "พี่เอก HRK (สตรีมเมอร์)", "น้าค่อม (ตลกในตำนาน)", "พี่เบิร์ด ธงไชย (นักร้อง)",
+                "ลูฟี่ (One Piece)", "นารูโตะ (Naruto)", "โกคู (Dragon Ball)", "โดราเอมอน (Doraemon)", "โคนัน (ยอดนักสืบจิ๋ว)",
+                "Kamen Rider Decade (ดีเคด)", "Kamen Rider Kabuto (คาบูโตะ)", "อุลตร้าแมนทีก้า (Ultraman Tiga)", "ไอรอนแมน (Iron Man)", "สไปเดอร์แมน (Spider-Man)",
+                "ชินจัง (จอมแก่น)", "ลิซ่า (BLACKPINK)", "ก้อง ห้วยไร่ (นักร้อง)", "แจ็ค แฟนฉัน (ดารา)", "โจ๊ก โซคูล (นักร้อง/ตลก)",
+                "ป๋อมแป๋ม (พิธีกร)", "กันต์ กันตถาวร (พิธีกร)", "หนุ่ม กรรชัย (โหนกระแส)", "สรยุทธ (ผู้ประกาศข่าว)", "ตูน บอดี้สแลม (นักร้อง)"
+            ],
+            kamenRider: [
+                "Kamen Rider Decade (ดีเคด)", "Kamen Rider Kabuto (คาบูโตะ)", "Kamen Rider Kuuga (คูกะ)", "Kamen Rider Agito (อากิโตะ)", "Kamen Rider Ryuki (ริวคิ)",
+                "Kamen Rider Faiz (ไฟซ์)", "Kamen Rider Blade (เบลด)", "Kamen Rider Hibiki (ฮิบิกิ)", "Kamen Rider Den-O (เดนโอ)", "Kamen Rider Kiva (คิบะ)",
+                "Kamen Rider W (ดับเบิล)", "Kamen Rider OOO (โอส)", "Kamen Rider Fourze (โฟร์เซ)", "Kamen Rider Wizard (วิซาร์ด)", "Kamen Rider Gaim (ไกมุ)",
+                "Kamen Rider Drive (ไดรฟ์)", "Kamen Rider Ghost (โกสต์)", "Kamen Rider Ex-Aid (เอ็กเซด)", "Kamen Rider Build (บิลด์)", "Kamen Rider Zi-O (จิโอ)",
+                "Kamen Rider Zero-One (เซโร่วัน)", "Kamen Rider Saber (เซเบอร์)", "Kamen Rider Revice (รีไวซ์)", "Kamen Rider Geats (กีทส์)", "Kamen Rider Gotchard (ก็อตชาร์ด)",
+                "Kamen Rider Black RX (แบล็ค อาร์เอ็กซ์)", "Kamen Rider Ichigo (หมายเลข 1)", "Kamen Rider Amazon (อมาซอน)", "อุลตร้าแมนเซโร่ (Ultraman Zero)", "ขบวนการโกไคเจอร์ (Gokaiger)"
+            ],
+            anime: [
+                "ลูฟี่ (One Piece)", "โซโล (One Piece)", "ซันจิ (One Piece)", "แชงคูส (One Piece)", "นารูโตะ (Naruto)",
+                "ซาสึเกะ (Naruto)", "คาคาชิ (Naruto)", "อิทาจิ (Naruto)", "โกคู (Dragon Ball)", "เบจิต้า (Dragon Ball)",
+                "โกโจ ซาโตรุ (Jujutsu Kaisen)", "สุคุนะ (Jujutsu Kaisen)", "ทันจิโร่ (ดาบพิฆาตอสูร)", "เรนโงคุ (ดาบพิฆาตอสูร)", "รีไวล์ (Attack on Titan)",
+                "เอเรน (Attack on Titan)", "ไซตามะ (One Punch Man)", "ไลท์ ยางามิ (Death Note)", "แอล L (Death Note)", "เอ็ดเวิร์ด (Fullmetal Alchemist)",
+                "กอน (Hunter x Hunter)", "คิรัวร์ (Hunter x Hunter)", "อิจิโกะ (Bleach)", "ไอเซ็น (Bleach)", "อาเนีย (Spy x Family)",
+                "ฟรีเรน (Frieren)", "โดราเอมอน (Doraemon)", "โคนัน (ยอดนักสืบจิ๋ว)", "ปิกาจู (Pokémon)", "ชินจัง (จอมแก่น)"
+            ],
+            thaiCelebs: [
+                "หนู (นายก)", "จอร์จ (Rubsarb)", "อิสระ (Rubsarb)", "พี่แน็ก ชาลี (นักแสดง)", "พี่เอก HRK (สตรีมเมอร์)",
+                "หนุ่ม กรรชัย (โหนกระแส)", "สรยุทธ (ผู้ประกาศข่าว)", "น้าค่อม (ตลกในตำนาน)", "หม่ำ จ๊กมก (ตลก)", "เท่ง เถิดเทิง (ตลก)",
+                "โหน่ง ชะชะช่า (ตลก)", "แจ๊ส ชวนชื่น (ตลก/นักร้อง)", "พี่เบิร์ด ธงไชย (นักร้อง)", "ตูน บอดี้สแลม (นักร้อง)", "โอม Cocktail (นักร้อง)",
+                "นนท์ ธนนท์ (นักร้อง)", "อิ้งค์ วรันธร (นักร้อง)", "โบกี้ไลอ้อน (นักร้อง)", "ลิซ่า (BLACKPINK)", "แบมแบม (GOT7)",
+                "มาริโอ้ เมาเร่อ (พระเอก)", "ณเดชน์ คูกิมิยะ (พระเอก)", "ญาญ่า อุรัสยา (นางเอก)", "ใบเฟิร์น พิมพ์ชนก (นางเอก)", "เบลล่า ราณี (นางเอก)",
+                "เจ ชนาธิป (นักฟุตบอล)", "บัวขาว (นักมวย)", "เทนนิส พาณิภัค (เทควันโด)", "ก้อง ห้วยไร่ (นักร้อง)", "โอ๊ต ปราโมทย์ (นักร้อง/พิธีกร)"
+            ],
+            hollywood: [
+                "ไอรอนแมน (Tony Stark)", "กัปตันอเมริกา (Steve Rogers)", "ธอร์ (เทพเจ้าสายฟ้า)", "สไปเดอร์แมน (Tom Holland)", "แบทแมน (Bruce Wayne)",
+                "ซุปเปอร์แมน (Clark Kent)", "โจ๊กเกอร์ (The Joker)", "เดดพูล (Deadpool)", "วูล์ฟเวอรีน (Hugh Jackman)", "ธานอส (Thanos)",
+                "ดาร์ธ เวเดอร์ (Star Wars)", "แฮร์รี่ พอตเตอร์ (Harry Potter)", "แกนดัล์ฟ (Lord of the Rings)", "กัปตันแจ็ค สแปร์โรว์ (Pirates)", "จอห์น วิค (Keanu Reeves)",
+                "ดอม โทเร็ตโต้ (Fast & Furious)", "เดอะร็อก (Dwayne Johnson)", "ทอม ครูซ (Mission Impossible)", "ลีโอนาร์โด ดิคาปริโอ (นักแสดง)", "แบรด พิตต์ (นักแสดง)",
+                "เทย์เลอร์ สวิฟต์ (นักร้อง)", "บียอนเซ่ (นักร้อง)", "ไมเคิล แจ็กสัน (ราชาเพลงป๊อป)", "คริสเตียโน โรนัลโด (นักฟุตบอล)", "ลิโอเนล เมสซี (นักฟุตบอล)",
+                "อีลอน มัสก์ (Tesla / SpaceX)", "มิสเตอร์บีสต์ (MrBeast)", "ไอโชว์สปีด (IShowSpeed)", "เชร็ค (Shrek)", "มินเนี่ยน (Minions)"
+            ],
+            videogames: [
+                "มาริโอ้ (Super Mario)", "ลุยจิ (Super Mario)", "ปิกาจู (Pokémon)", "ลิงก์ (Zelda)", "เครโทส (God of War)",
+                "มาสเตอร์ชีฟ (Halo)", "คลาวด์ สไตรฟ์ (Final Fantasy VII)", "เซฟิรอธ (Final Fantasy VII)", "ลีออน เคนเนดี (Resident Evil)", "เอด้า วอง (Resident Evil)",
+                "ดัมเบิลดอร์ (Hogwarts Legacy)", "โซนิค (Sonic the Hedgehog)", "แพคแมน (Pac-Man)", "สตีฟ (Minecraft)", "ครีปเปอร์ (Minecraft)",
+                "เกรัลท์ (The Witcher 3)", "อาเธอร์ มอร์แกน (Red Dead 2)", "ซีเจ CJ (GTA San Andreas)", "สเนค (Metal Gear Solid)", "ดันเต้ (Devil May Cry)",
+                "เวอร์จิล (Devil May Cry)", "ริว (Street Fighter)", "สกอร์เปี้ยน (Mortal Kombat)", "เทรเซอร์ (Overwatch)", "เจ็ตต์ (VALORANT)",
+                "ยาซูโอะ (League of Legends)", "จิงซ์ (Arcane / LoL)", "ปุดจ์ Pudge (Dota 2)", "2B (NieR:Automata)", "อัลลอย (Horizon Zero Dawn)"
+            ]
+        };
+
+        const STAMP_STYLES = [
+            { bg: 'from-rose-500 to-pink-600', border: 'border-rose-300' },
+            { bg: 'from-cyan-500 to-blue-600', border: 'border-cyan-300' },
+            { bg: 'from-emerald-500 to-teal-600', border: 'border-emerald-300' },
+            { bg: 'from-purple-500 to-indigo-600', border: 'border-purple-300' },
+            { bg: 'from-amber-500 to-orange-600', border: 'border-amber-200' }
+        ];
+
+        // Default Rubsarb-style Host Clue / Hint Pool (100 Thai + Pop Culture Traits)
+        const DEFAULT_HOST_HINTS = [
+            "นักแสดงต่างชาติ (Foreign Actor)",
+            "นักกีฬา (Athlete / Sportsperson)",
+            "เคยได้แชมป์โลก (Former World Champion)",
+            "ผู้ชายผมยาว (Man with Long Hair)",
+            "คนที่มีลูกแล้ว (Has Children / Parent)",
+            "เรียนไม่จบ (Dropped Out / Didn't Graduate)",
+            "ใส่แว่นตา (Wears Glasses)",
+            "เป็นตัวละครจากอนิเมะ (Anime Character)",
+            "คนไทยแท้ 100% (100% Thai)",
+            "เป็นฮีโร่ / แปลงร่างได้ (Hero / Can Transform)",
+            "มีหนวดหรือเครา (Has Mustache or Beard)",
+            "เป็นยูทูบเบอร์ / สตรีมเมอร์ (YouTuber / Streamer)",
+            "เคยมีข่าวดราม่าดัง (Had a Famous Drama / Controversy)",
+            "อายุเกิน 40 ปี (Over 40 Years Old)",
+            "อายุน้อยกว่า 25 ปี (Under 25 Years Old)",
+            "เป็นนักร้อง / นักดนตรี (Singer / Musician)",
+            "ตัวละครจากเกม (Video Game Character)",
+            "ใส่หมวกหรือหน้ากากเป็นเอกลักษณ์ (Iconic Hat or Mask)",
+            "เคยเล่นหนังฮอลลีวูด (Starred in a Hollywood Movie)",
+            "เป็นคนตลก / สายฮา (Comedian / Funny Person)",
+            "แต่งงานแล้ว (Married)",
+            "ยังโสด (Single)",
+            "มีพลังพิเศษเหนือมนุษย์ (Has Superpowers)",
+            "เคยมาออกรายการ Rubsarb / เกี่ยวข้องกับ Rubsarb",
+            "เป็นคนดังระดับโลก (Globally Famous)",
+            "ผมสีทอง / ย้อมผมสีสว่าง (Blonde / Dyed Bright Hair)",
+            "ตัวสูงเกิน 180 ซม. (Over 180 cm Tall)",
+            "เคยเป็นนักการเมือง / ผู้นำ (Politician / Leader)",
+            "มีสัตว์เลี้ยงคู่ใจ (Has an Iconic Pet / Sidekick)",
+            "ชื่อขึ้นต้นด้วยพยัญชนะไทย ก-ฮ",
+            "ชื่อภาษาอังกฤษขึ้นต้นด้วย A-M",
+            "ชื่อภาษาอังกฤษขึ้นต้นด้วย N-Z",
+            "เป็นตัวร้าย / บอสใหญ่ (Villain / Final Boss)",
+            "รวยระดับมหาเศรษฐี (Super Rich / Billionaire)",
+            "ชอบกินของหวานหรืออาหารจานโปรดที่เป็นเอกลักษณ์",
+            "เคยเปลี่ยนทรงผมบ่อยมาก (Changed Hairstyles Often)",
+            "มีรอยสัก (Has Tattoos)",
+            "ถนัดซ้าย (Left-Handed)",
+            "เกิดราศีธาตุไฟ (เมษ / สิงห์ / ธนู)",
+            "เคยร่วมงานกับแบรนด์ระดับโลก (Global Brand Ambassador)",
+            "เป็นคนพูดเก่ง / พิธีกร (Great Talker / MC / Host)",
+            "มีฉายาที่คนเรียกติดปาก (Has a Famous Nickname)",
+            "เคยร้องไห้ออกสื่อ (Cried on Camera / Media)",
+            "เป็นตำนานที่ยังมีชีวิต (Living Legend)",
+            "ไม่ใช่คนจริง / เป็นตัวละครสมมติ (Fictional Character)",
+            "เคยโกนหัว / หัวโล้น (Bald or Shaved Head)",
+            "เกิดในกรุงเทพฯ (Born in Bangkok)",
+            "คนต่างจังหวัด (Born Outside Bangkok / Provincial)",
+            "เป็นลูกครึ่ง (Mixed Heritage / Half-Thai)",
+            "เคยบวชเรียนมาก่อน (Previously Ordained as a Monk)",
+            "พูดได้มากกว่า 2 ภาษา (Speaks More Than 2 Languages)",
+            "เป็นเจ้าของธุรกิจ / CEO (Business Owner / CEO)",
+            "เคยเป็นไวรัลใน TikTok (Went Viral on TikTok)",
+            "มีมีม (Meme) เป็นของตัวเอง (Has a Famous Meme)",
+            "ชอบออกกำลังกาย / กล้ามใหญ่ (Muscular / Fitness Lover)",
+            "ตัวเล็กน่ารัก / ส่วนสูงไม่เกิน 165 ซม. (Petite / Under 165 cm)",
+            "เคยได้รับรางวัลระดับประเทศหรือระดับโลก (Award Winner)",
+            "ใส่ชุดสีแดงเป็นเอกลักษณ์ (Iconic Red Outfit)",
+            "ใส่ชุดสีดำเป็นประจำ (Usually Wears Black)",
+            "ใช้อาวุธในการต่อสู้ (Uses a Weapon in Battle)",
+            "ต่อสู้ด้วยมือเปล่า / ศิลปะการต่อสู้ (Martial Artist / Hand-to-Hand)",
+            "มาจากประเทศญี่ปุ่น (From Japan / Japanese)",
+            "มาจากประเทศเกาหลีใต้ (From South Korea / Korean)",
+            "มาจากสหรัฐอเมริกา (From the USA / American)",
+            "มาจากทวีปยุโรป (From Europe / European)",
+            "เป็นพระเอก / ตัวเอกของเรื่อง (Main Protagonist)",
+            "เป็นตัวละครสายซัพพอร์ต / เพื่อนพระเอก (Sidekick / Best Friend)",
+            "เคยร่วมงานกับช่องอื่นบ่อยๆ (Frequent Collaborator)",
+            "มีผู้ติดตามเกิน 1 ล้านคน (Over 1 Million Followers)",
+            "เคยเป็นเด็กเนิร์ด / ชอบเล่นเกม (Gamer / Nerd)",
+            "ชอบสัตว์ / รักสัตว์มาก (Animal Lover)",
+            "เป็นคนเจ้าระเบียบ / จริงจัง (Perfectionist / Serious)",
+            "เป็นคนกวนๆ / ชอบแกล้งคนอื่น (Prankster / Playful)",
+            "เคยเปลี่ยนชื่อในวงการ (Uses a Stage Name / Alias)",
+            "มีพี่น้องเป็นคนดังเหมือนกัน (Has a Famous Sibling)",
+            "เคยตกเป็นข่าวเรื่องความรัก (Famous Relationship News)",
+            "ชอบแต่งตัวแฟชั่นจัดจ้าน (Fashionista / Bold Style)",
+            "หน้าเด็กกว่าอายุจริง (Baby-Faced / Looks Younger)",
+            "เสียงที่เป็นเอกลักษณ์ จำได้ทันที (Unmistakable Iconic Voice)",
+            "เคยพากย์เสียงการ์ตูนหรือหนัง (Voice Actor)",
+            "เป็นคนยุค 90s (90s Kid / 90s Icon)",
+            "เป็น Gen Z (Born After 1997 / Gen Z)",
+            "เคยบาดเจ็บหนักหรือผ่านเหตุการณ์เฉียดตาย (Survived Major Injury)",
+            "มีความสามารถด้านศิลปะ / วาดรูป (Artistic / Can Draw)",
+            "ขับรถเก่ง / ชอบรถซิ่ง (Car Enthusiast / Skilled Driver)",
+            "เคยทำอาหารโชว์ออกสื่อ (Cooked on Camera)",
+            "เป็นคนขี้อาย / อินโทรเวิร์ต (Shy / Introvert)",
+            "เป็นสายปาร์ตี้ / เอ็กซ์โทรเวิร์ต (Extrovert / Life of the Party)",
+            "มีรอยยิ้มที่เป็นเอกลักษณ์ (Signature Smile)",
+            "เคยร่วมรายการเกมโชว์ (Appeared on a Game Show)",
+            "มีแฟนคลับต่างประเทศเยอะ (Huge International Fanbase)",
+            "ชอบใส่เครื่องประดับ เช่น แหวน สร้อย นาฬิกา (Wears Accessories)",
+            "เคยเป็นนักแสดงเด็กมาก่อน (Former Child Actor)",
+            "มีความลับหรือปมในอดีต (Has a Mysterious Past)",
+            "เป็นคนรักครอบครัวมาก (Family-Oriented)",
+            "เคยสร้างตำนานวลีเด็ดติดปากคนทั้งประเทศ (Coined a Catchphrase)",
+            "มีเอกลักษณ์ที่ทรงผม (Iconic Hairstyle)",
+            "เป็นขวัญใจวัยรุ่น (Teen Idol)",
+            "เป็นขวัญใจคนทุกเพศทุกวัย (Beloved by All Ages)",
+            "ถ้าพูดชื่อขึ้นมา ทุกคนในห้องต้องรู้จัก (Everyone in the Room Knows Them)"
+        ];
+
+        // Vibrant Game-Show Segment Palette for Spinning Wheel
+        const WHEEL_COLORS = [
+            "#e11d48", // Rose 600
+            "#2563eb", // Blue 600
+            "#059669", // Emerald 600
+            "#d97706", // Amber 600
+            "#7c3aed", // Violet 600
+            "#0891b2", // Cyan 600
+            "#db2777", // Pink 600
+            "#4f46e5"  // Indigo 600
+        ];
+
+        /**
+         * ============================================================================
+         * APPLICATION STATE (PLAYER + HOST)
+         * ============================================================================
+         */
+        let state = {
+            appView: 'player', // 'player' | 'host'
+            mode: 'setup',     // 'setup' | 'play'
+            useFreeSpace: true,
+            cells: [],
+            completedLinesCount: 0,
+            winningCellIndices: new Set(),
+            soundEnabled: true,
+            hasCelebratedGoal: false
+        };
+
+        let hostState = {
+            startNum: 1,
+            endNum: 60,
+            useFreeSpace: true,
+            cardCells: [],      // 25-element array: { num, marked, isFree, stampIdx }
+            winningIndices: new Set(),
+            completedLines: 0,
+            drawnHistory: [],   // Ordered array of { num, hint } (newest at end)
+            calledSet: new Set(),
+            hintPool: [...DEFAULT_HOST_HINTS],
+            availableHints: [...DEFAULT_HOST_HINTS],
+            currentHint: null,
+            wheelAngle: 0,      // Current rotation in radians
+            isSpinning: false,
+            lastTickIndex: -1
+        };
+
+        /**
+         * ============================================================================
+         * INITIALIZATION & VIEW SWITCHING
+         * ============================================================================
+         */
+        function initApp() {
+            loadPresetTheme('rubsarb', false);
+            initHostMode();
+            resizeConfettiCanvas();
+            window.addEventListener('resize', resizeConfettiCanvas);
+        }
+
+        function switchAppView(view) {
+            state.appView = view;
+            const playerSec = document.getElementById('playerViewSection');
+            const hostSec = document.getElementById('hostViewSection');
+            const playerBtn = document.getElementById('viewPlayerBtn');
+            const hostBtn = document.getElementById('viewHostBtn');
+
+            if (view === 'player') {
+                playerSec.classList.remove('hidden');
+                hostSec.classList.add('hidden');
+                playerBtn.className = "py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-display text-sm sm:text-base font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg";
+                hostBtn.className = "py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-display text-sm sm:text-base font-bold transition flex items-center justify-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800/60";
+            } else {
+                playerSec.classList.add('hidden');
+                hostSec.classList.remove('hidden');
+                hostBtn.className = "py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-display text-sm sm:text-base font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-pink-600 text-white shadow-lg";
+                playerBtn.className = "py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-display text-sm sm:text-base font-bold transition flex items-center justify-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800/60";
+                
+                // Ensure wheel canvas sizes properly when revealed
+                requestAnimationFrame(() => {
+                    resizeHostWheelCanvas();
+                    drawHostWheel();
+                });
+            }
+            playSound('click');
+        }
+
+        function switchMode(newMode) {
+            state.mode = newMode;
+            const setupTab = document.getElementById('tabSetupBtn');
+            const playTab = document.getElementById('tabPlayBtn');
+            const setupPanel = document.getElementById('setupControls');
+            const playPanel = document.getElementById('playControls');
+
+            if (newMode === 'setup') {
+                setupTab.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow";
+                playTab.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
+                setupPanel.classList.remove('hidden');
+                playPanel.classList.add('hidden');
+                document.getElementById('bingoBanner').classList.add('hidden');
+            } else {
+                playTab.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow";
+                setupTab.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white";
+                setupPanel.classList.add('hidden');
+                playPanel.classList.remove('hidden');
+            }
+
+            renderGrid();
+            evaluateBoard(false);
+        }
+
+        function startGame() {
+            const emptyCount = state.cells.filter((cell, idx) => {
+                if (idx === 12 && state.useFreeSpace) return false;
+                return !cell.text || cell.text.trim() === '';
+            }).length;
+
+            if (emptyCount > 0) {
+                showToast(`Tip: ${emptyCount} square(s) are empty — you can still play or fill them in!`);
+            } else {
+                showToast('Board locked in! Tap squares as characters appear!');
+            }
+
+            state.hasCelebratedGoal = false;
+            playSound('start');
+            switchMode('play');
+        }
+
+        /**
+         * ============================================================================
+         * PLAYER BOARD MANAGEMENT & PRESETS
+         * ============================================================================
+         */
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function loadPresetTheme(themeKey, notify = true) {
+            const pool = PRESET_THEMES[themeKey] || PRESET_THEMES.rubsarb;
+            const shuffled = shuffleArray(pool);
+
+            // Guarantee showcase items appear immediately on initial Rubsarb load
+            if (!notify && themeKey === 'rubsarb') {
+                const showcase = ["หนู (นายก)", "Kamen Rider Decade (ดีเคด)", "Kamen Rider Kabuto (คาบูโตะ)"];
+                showcase.forEach(item => {
+                    if (!shuffled.slice(0, 24).includes(item)) {
+                        const replaceIdx = Math.floor(Math.random() * 24);
+                        shuffled[replaceIdx] = item;
+                    }
+                });
+            }
+
+            state.cells = Array.from({ length: 25 }, (_, i) => ({
+                text: shuffled[i % shuffled.length],
+                marked: i === 12 && state.useFreeSpace,
+                stampIdx: i % STAMP_STYLES.length
+            }));
+
+            state.completedLinesCount = 0;
+            state.winningCellIndices.clear();
+            state.hasCelebratedGoal = false;
+
+            renderGrid();
+            evaluateBoard(false);
+
+            if (notify) {
+                playSound('shuffle');
+                showToast('Loaded theme pack & shuffled!');
+            }
+        }
+
+        function shuffleBoard() {
+            const items = [];
+            state.cells.forEach((cell, idx) => {
+                if (!(idx === 12 && state.useFreeSpace)) {
+                    items.push(cell.text);
+                }
+            });
+
+            const shuffled = shuffleArray(items);
+            let ptr = 0;
+
+            state.cells = state.cells.map((cell, idx) => {
+                if (idx === 12 && state.useFreeSpace) {
+                    return { text: cell.text, marked: true, stampIdx: cell.stampIdx };
+                }
+                const nextText = shuffled[ptr++] || '';
+                return { text: nextText, marked: false, stampIdx: idx % STAMP_STYLES.length };
+            });
+
+            state.completedLinesCount = 0;
+            state.winningCellIndices.clear();
+            state.hasCelebratedGoal = false;
+
+            playSound('shuffle');
+            renderGrid();
+            evaluateBoard(false);
+            showToast('Shuffled 5×5 board order!');
+        }
+
+        function clearBoard() {
+            state.cells = Array.from({ length: 25 }, (_, idx) => ({
+                text: '',
+                marked: idx === 12 && state.useFreeSpace,
+                stampIdx: idx % STAMP_STYLES.length
+            }));
+            state.completedLinesCount = 0;
+            state.winningCellIndices.clear();
+            renderGrid();
+            evaluateBoard(false);
+            showToast('Board cleared — type or paste your names!');
+        }
+
+        function toggleFreeSpace() {
+            state.useFreeSpace = document.getElementById('freeSpaceToggle').checked;
+            if (state.cells[12]) {
+                state.cells[12].marked = state.useFreeSpace;
+            }
+            renderGrid();
+            evaluateBoard(false);
+        }
+
+        function resetMarks() {
+            state.cells.forEach((cell, idx) => {
+                cell.marked = (idx === 12 && state.useFreeSpace);
+            });
+            state.completedLinesCount = 0;
+            state.winningCellIndices.clear();
+            state.hasCelebratedGoal = false;
+            document.getElementById('bingoBanner').classList.add('hidden');
+            playSound('shuffle');
+            renderGrid();
+            evaluateBoard(false);
+            showToast('All marks reset!');
+        }
+
+        /**
+         * ============================================================================
+         * PLAYER 5x5 GRID RENDERING & INTERACTION
+         * ============================================================================
+         */
+        function getDynamicFontSize(text) {
+            const len = (text || '').trim().length;
+            if (len <= 8) return 'text-xs sm:text-base md:text-lg';
+            if (len <= 16) return 'text-[11px] sm:text-sm md:text-base';
+            if (len <= 24) return 'text-[10px] sm:text-xs md:text-sm';
+            return 'text-[9px] sm:text-[11px] md:text-xs';
+        }
+
+        function renderGrid() {
+            const gridEl = document.getElementById('bingoGrid');
+            gridEl.innerHTML = '';
+
+            state.cells.forEach((cell, index) => {
+                const isCenterFree = index === 12 && state.useFreeSpace;
+                const isWinning = state.winningCellIndices.has(index);
+
+                const tile = document.createElement('div');
+                let baseClasses = "bingo-tile relative aspect-square rounded-xl sm:rounded-2xl p-1.5 sm:p-2 flex flex-col items-center justify-center text-center border-2 overflow-hidden ";
+
+                if (isCenterFree) {
+                    baseClasses += "bg-gradient-to-br from-amber-500/30 via-yellow-500/20 to-orange-600/30 border-amber-400/80 shadow-inner ";
+                } else if (cell.marked && state.mode === 'play') {
+                    baseClasses += "bg-slate-800/95 border-pink-500/80 shadow-lg ";
+                } else {
+                    baseClasses += "bg-slate-800/85 hover:bg-slate-750 border-slate-700/90 hover:border-indigo-400/70 shadow-md ";
+                }
+
+                if (isWinning && state.mode === 'play') {
+                    baseClasses += "winning-tile ";
+                }
+
+                tile.className = baseClasses;
+
+                if (state.mode === 'setup') {
+                    if (isCenterFree) {
+                        tile.innerHTML = `
+                            <span class="text-lg sm:text-2xl mb-0.5">⭐</span>
+                            <span class="font-display font-bold text-amber-300 text-xs sm:text-base tracking-wide leading-tight">FREE</span>
+                            <span class="text-[9px] sm:text-[10px] text-amber-200/70 font-semibold">CENTER</span>
+                        `;
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = cell.text;
+                        textarea.placeholder = `#${index + 1}`;
+                        textarea.maxLength = 45;
+                        textarea.setAttribute('aria-label', `Square ${index + 1} character name`);
+                        textarea.className = `w-full h-full bg-transparent text-center font-bold text-white placeholder-slate-500 resize-none focus:outline-none focus:bg-slate-950/60 rounded-lg p-1 flex items-center justify-center leading-snug ${getDynamicFontSize(cell.text)}`;
+                        
+                        textarea.addEventListener('input', (e) => {
+                            state.cells[index].text = e.target.value;
+                            e.target.className = `w-full h-full bg-transparent text-center font-bold text-white placeholder-slate-500 resize-none focus:outline-none focus:bg-slate-950/60 rounded-lg p-1 flex items-center justify-center leading-snug ${getDynamicFontSize(e.target.value)}`;
+                        });
+
+                        tile.appendChild(textarea);
+                    }
+                } else {
+                    tile.classList.add('cursor-pointer');
+                    tile.setAttribute('role', 'button');
+                    tile.setAttribute('tabindex', '0');
+
+                    const toggleMark = () => {
+                        if (isCenterFree) {
+                            showToast('Center FREE space stays stamped!');
+                            return;
+                        }
+                        cell.marked = !cell.marked;
+                        if (cell.marked) {
+                            cell.stampIdx = Math.floor(Math.random() * STAMP_STYLES.length);
+                            playSound('stamp');
+                        } else {
+                            playSound('unstamp');
+                        }
+                        renderGrid();
+                        evaluateBoard(true);
+                    };
+
+                    tile.addEventListener('click', toggleMark);
+                    tile.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleMark();
+                        }
+                    });
+
+                    if (isCenterFree) {
+                        tile.innerHTML = `
+                            <span class="text-xl sm:text-3xl drop-shadow">⭐</span>
+                            <span class="font-display font-bold text-amber-300 text-xs sm:text-lg tracking-wider">FREE</span>
+                        `;
+                    } else {
+                        const label = document.createElement('span');
+                        label.className = `relative z-10 font-bold leading-snug break-words px-0.5 transition-all ${getDynamicFontSize(cell.text)} ${
+                            cell.marked ? 'text-white/95 drop-shadow' : 'text-slate-100'
+                        }`;
+                        label.textContent = cell.text.trim() || `Square #${index + 1}`;
+                        tile.appendChild(label);
+
+                        if (cell.marked) {
+                            const stampTheme = STAMP_STYLES[cell.stampIdx];
+                            const stampOverlay = document.createElement('div');
+                            stampOverlay.className = `animate-stamp absolute inset-1 sm:inset-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br ${stampTheme.bg} opacity-85 border-2 ${stampTheme.border} flex items-center justify-center pointer-events-none shadow-inner`;
+                            stampOverlay.innerHTML = `
+                                <svg class="w-4/5 h-4/5 text-white/35" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round">
+                                    <line x1="20" y1="20" x2="80" y2="80" />
+                                    <line x1="80" y1="20" x2="20" y2="80" />
+                                </svg>
+                            `;
+                            tile.appendChild(stampOverlay);
+                        }
+                    }
+                }
+
+                gridEl.appendChild(tile);
+            });
+        }
+
+        /**
+         * ============================================================================
+         * PLAYER BINGO LINE DETECTION & SCORE EVALUATION
+         * ============================================================================
+         */
+        function evaluateBoard(triggerCelebration = true) {
+            const winningLines = [
+                [0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24],
+                [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
+                [0, 6, 12, 18, 24], [4, 8, 12, 16, 20]
+            ];
+
+            const prevLines = state.completedLinesCount;
+            let completedCount = 0;
+            const winIndices = new Set();
+
+            winningLines.forEach(line => {
+                const isLineComplete = line.every(idx => state.cells[idx] && state.cells[idx].marked);
+                if (isLineComplete) {
+                    completedCount++;
+                    line.forEach(idx => winIndices.add(idx));
+                }
+            });
+
+            state.completedLinesCount = completedCount;
+            state.winningCellIndices = winIndices;
+
+            const stampedTotal = state.cells.filter(c => c.marked).length;
+            document.getElementById('stampedCount').textContent = `${stampedTotal} / 25`;
+            document.getElementById('bingoLinesCount').textContent = completedCount;
+
+            if (state.mode === 'play') {
+                const targetGoal = parseInt(document.getElementById('targetLinesSelect').value, 10);
+                const bannerEl = document.getElementById('bingoBanner');
+                const titleEl = document.getElementById('bingoBannerTitle');
+                const subtitleEl = document.getElementById('bingoBannerSubtitle');
+
+                if (completedCount > 0) {
+                    bannerEl.classList.remove('hidden');
+                    const reachedGoal = completedCount >= targetGoal;
+
+                    if (reachedGoal) {
+                        titleEl.textContent = completedCount === 12
+                            ? "👑 BLACKOUT BINGO! FULL BOARD!"
+                            : `🎉 GOAL REACHED! ${completedCount} BINGO ${completedCount === 1 ? 'LINE' : 'LINES'}!`;
+                        subtitleEl.textContent = "You hit the target! Shout BINGO to claim your victory!";
+                    } else {
+                        titleEl.textContent = `🔥 ${completedCount} ${completedCount === 1 ? 'LINE' : 'LINES'} COMPLETED!`;
+                        subtitleEl.textContent = `Keep going! You need ${targetGoal - completedCount} more ${targetGoal - completedCount === 1 ? 'line' : 'lines'} to win!`;
+                    }
+
+                    if (triggerCelebration && completedCount > prevLines) {
+                        playSound('bingo');
+                        triggerConfettiBlast();
+                        renderGrid();
+                    }
+                } else {
+                    bannerEl.classList.add('hidden');
+                }
+            }
+        }
+
+        /**
+         * ============================================================================
+         * BULK PASTE MODAL & CLIPBOARD EXPORT
+         * ============================================================================
+         */
+        function openBulkModal() {
+            const currentNames = state.cells
+                .filter((_, idx) => !(idx === 12 && state.useFreeSpace))
+                .map(c => c.text)
+                .filter(t => t.trim() !== '');
+            document.getElementById('bulkTextarea').value = currentNames.join('\n');
+            document.getElementById('bulkModal').classList.remove('hidden');
+        }
+
+        function closeBulkModal() {
+            document.getElementById('bulkModal').classList.add('hidden');
+        }
+
+        function applyBulkPaste() {
+            const raw = document.getElementById('bulkTextarea').value;
+            let entries = raw
+                .split(/[\n,]+/)
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+
+            if (entries.length === 0) {
+                showToast('Please paste at least one character name!');
+                return;
+            }
+
+            if (document.getElementById('shuffleOnPasteCheckbox').checked) {
+                entries = shuffleArray(entries);
+            }
+
+            let entryIdx = 0;
+            state.cells = Array.from({ length: 25 }, (_, i) => {
+                if (i === 12 && state.useFreeSpace) {
+                    return { text: 'FREE', marked: true, stampIdx: i % STAMP_STYLES.length };
+                }
+                const text = entries[entryIdx] || '';
+                entryIdx++;
+                return { text, marked: false, stampIdx: i % STAMP_STYLES.length };
+            });
+
+            closeBulkModal();
+            playSound('shuffle');
+            renderGrid();
+            evaluateBoard(false);
+            showToast(`Filled board with ${Math.min(entries.length, state.useFreeSpace ? 24 : 25)} names!`);
+        }
+
+        function copyBoardToClipboard() {
+            let lines = ["🎲 MY RUBSARB 5x5 BINGO BOARD 🎲"];
+            for (let r = 0; r < 5; r++) {
+                let rowItems = [];
+                for (let c = 0; c < 5; c++) {
+                    const idx = r * 5 + c;
+                    if (idx === 12 && state.useFreeSpace) {
+                        rowItems.push("[★FREE★]");
+                    } else {
+                        const mark = state.cells[idx].marked ? "✅" : "⬜";
+                        const name = state.cells[idx].text.trim() || `#${idx + 1}`;
+                        rowItems.push(`${mark}${name}`);
+                    }
+                }
+                lines.push(rowItems.join(" | "));
+            }
+
+            const tempArea = document.createElement('textarea');
+            tempArea.value = lines.join('\n');
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Copied 5×5 board text to clipboard!');
+            } catch (err) {
+                showToast('Unable to copy automatically.');
+            }
+            document.body.removeChild(tempArea);
+        }
+
+        /**
+         * ============================================================================
+         * WEB AUDIO SYNTHESIZED GAME SHOW SOUND EFFECTS (ZERO EXTERNAL URLS)
+         * ============================================================================
+         */
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            document.getElementById('soundIcon').textContent = state.soundEnabled ? '🔊' : '🔇';
+            document.getElementById('soundLabel').textContent = state.soundEnabled ? 'SFX On' : 'SFX Off';
+            if (state.soundEnabled) playSound('click');
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+
+            if (type === 'tick') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(920, now);
+                osc.frequency.exponentialRampToValueAtTime(420, now + 0.035);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.04);
+            } else if (type === 'stamp') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(340, now);
+                osc.frequency.exponentialRampToValueAtTime(680, now + 0.11);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'unstamp' || type === 'click') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(260, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'shuffle' || type === 'start') {
+                const notes = [523.25, 659.25, 783.99];
+                notes.forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.06);
+                    gain.gain.setValueAtTime(0.12, now + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.06);
+                    osc.stop(now + i * 0.06 + 0.16);
+                });
+            } else if (type === 'bingo') {
+                const fanfare = [523.25, 659.25, 783.99, 1046.50];
+                fanfare.forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.09);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.38);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.09);
+                    osc.stop(now + i * 0.09 + 0.4);
+                });
+            }
+        }
+
+        /**
+         * ============================================================================
+         * BUILT-IN LIGHTWEIGHT CONFETTI PARTICLE SYSTEM
+         * ============================================================================
+         */
+        let confettiParticles = [];
+        let confettiAnimId = null;
+
+        function resizeConfettiCanvas() {
+            const canvas = document.getElementById('confettiCanvas');
+            if (!canvas) return;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function triggerConfettiBlast() {
+            const canvas = document.getElementById('confettiCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const colors = ['#facc15', '#f43f5e', '#38bdf8', '#a855f7', '#34d399', '#fb923c'];
+
+            for (let i = 0; i < 85; i++) {
+                confettiParticles.push({
+                    x: canvas.width * (0.2 + Math.random() * 0.6),
+                    y: canvas.height * 0.45,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: -6 - Math.random() * 11,
+                    size: 6 + Math.random() * 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 12,
+                    life: 1.0
+                });
+            }
+
+            if (!confettiAnimId) {
+                function animateConfetti() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    confettiParticles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.35; // gravity
+                        p.vx *= 0.985;
+                        p.rotation += p.rotSpeed;
+                        p.life -= 0.012;
+
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.globalAlpha = Math.max(0, p.life);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+                        ctx.restore();
+                    });
+
+                    confettiParticles = confettiParticles.filter(p => p.life > 0 && p.y < canvas.height + 30);
+                    if (confettiParticles.length > 0) {
+                        confettiAnimId = requestAnimationFrame(animateConfetti);
+                    } else {
+                        confettiAnimId = null;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                }
+                confettiAnimId = requestAnimationFrame(animateConfetti);
+            }
+        }
+
+        /**
+         * ============================================================================
+         * PARTY HOST MODE HELPERS & RANGE CONTROLS
+         * ============================================================================
+         */
+        function initHostMode() {
+            applyHostRange(hostState.startNum, hostState.endNum, false);
+        }
+
+        function getHostAllNumbers() {
+            const nums = [];
+            for (let n = hostState.startNum; n <= hostState.endNum; n++) {
+                nums.push(n);
+            }
+            return nums;
+        }
+
+        function getHostRemainingNumbers() {
+            return getHostAllNumbers().filter(n => !hostState.calledSet.has(n));
+        }
+
+        function getBingoLetterPrefix(num) {
+            const total = hostState.endNum - hostState.startNum + 1;
+            const offset = num - hostState.startNum;
+            const bucket = Math.min(4, Math.max(0, Math.floor((offset / Math.max(1, total)) * 5)));
+            return ['B', 'I', 'N', 'G', 'O'][bucket];
+        }
+
+        function setHostPresetRange(start, end) {
+            if (hostState.isSpinning) return;
+            document.getElementById('hostStartInput').value = start;
+            document.getElementById('hostEndInput').value = end;
+            requestApplyHostRange();
+        }
+
+        function requestApplyHostRange() {
+            if (hostState.isSpinning) return;
+            const start = parseInt(document.getElementById('hostStartInput').value, 10);
+            const end = parseInt(document.getElementById('hostEndInput').value, 10);
+
+            if (isNaN(start) || isNaN(end) || start < 0 || end > 999 || start >= end) {
+                showToast('Please enter a valid number range (From < To, 0–999).');
+                return;
+            }
+            if (end - start + 1 < 25) {
+                showToast('Range must have at least 25 numbers for a 5×5 Host Bingo card!');
+                return;
+            }
+
+            if (hostState.calledSet.size > 0) {
+                showHostConfirm(
+                    `Reset current called numbers and switch range to ${start}–${end}?`,
+                    () => applyHostRange(start, end, true)
+                );
+            } else {
+                applyHostRange(start, end, true);
+            }
+        }
+
+        function requestResetHostBoard() {
+            if (hostState.isSpinning) return;
+            if (hostState.calledSet.size === 0) {
+                showToast('Wheel and board are already clean!');
+                return;
+            }
+            showHostConfirm(
+                'Restore all numbers back onto the wheel and clear marks for a new round?',
+                () => applyHostRange(hostState.startNum, hostState.endNum, true)
+            );
+        }
+
+        function showHostConfirm(message, onConfirmCallback) {
+            const bar = document.getElementById('hostConfirmBar');
+            document.getElementById('hostConfirmText').textContent = message;
+            const yesBtn = document.getElementById('hostConfirmYesBtn');
+            yesBtn.onclick = () => {
+                cancelHostConfirm();
+                onConfirmCallback();
+            };
+            bar.classList.remove('hidden');
+        }
+
+        function cancelHostConfirm() {
+            document.getElementById('hostConfirmBar').classList.add('hidden');
+        }
+
+        function applyHostRange(start, end, notify = true) {
+            hostState.startNum = start;
+            hostState.endNum = end;
+            hostState.drawnHistory = [];
+            hostState.calledSet.clear();
+            hostState.availableHints = [...hostState.hintPool];
+            hostState.currentHint = null;
+            hostState.wheelAngle = 0;
+
+            document.getElementById('hostStartInput').value = start;
+            document.getElementById('hostEndInput').value = end;
+
+            generateHostBingoCard();
+            evaluateHostBingo(false);
+            renderHostMasterBoard();
+            updateHostUI();
+            resizeHostWheelCanvas();
+            drawHostWheel();
+
+            if (notify) {
+                playSound('shuffle');
+                showToast(`Host wheel (${start}–${end}), hints & 5×5 card ready!`);
+            }
+        }
+
+        function drawRandomHostHint() {
+            if (hostState.hintPool.length === 0) {
+                hostState.hintPool = [...DEFAULT_HOST_HINTS];
+            }
+            if (hostState.availableHints.length === 0) {
+                // Auto-refill if all hints were used
+                hostState.availableHints = [...hostState.hintPool];
+            }
+            const randIdx = Math.floor(Math.random() * hostState.availableHints.length);
+            const chosenHint = hostState.availableHints.splice(randIdx, 1)[0];
+            hostState.currentHint = chosenHint;
+            return chosenHint;
+        }
+
+        function rerollHostHint() {
+            if (hostState.isSpinning) return;
+            const newHint = drawRandomHostHint();
+            if (hostState.drawnHistory.length > 0) {
+                hostState.drawnHistory[hostState.drawnHistory.length - 1].hint = newHint;
+            }
+            playSound('shuffle');
+            updateHostUI();
+            showToast('Picked a new random hint!');
+        }
+
+        function resetHostHintPool() {
+            hostState.availableHints = [...hostState.hintPool];
+            updateHostUI();
+            showToast(`Restored all ${hostState.hintPool.length} hints to the pool!`);
+        }
+
+        function openHostHintModal() {
+            document.getElementById('hostHintPoolTextarea').value = hostState.hintPool.join('\n');
+            document.getElementById('hostHintModal').classList.remove('hidden');
+        }
+
+        function closeHostHintModal() {
+            document.getElementById('hostHintModal').classList.add('hidden');
+        }
+
+        function restoreDefaultHostHints() {
+            document.getElementById('hostHintPoolTextarea').value = DEFAULT_HOST_HINTS.join('\n');
+            showToast('Loaded default Rubsarb hints — click Save Hints!');
+        }
+
+        function saveHostHintPool() {
+            const raw = document.getElementById('hostHintPoolTextarea').value;
+            const parsed = raw
+                .split('\n')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+
+            if (parsed.length === 0) {
+                showToast('Please enter at least one hint!');
+                return;
+            }
+
+            hostState.hintPool = parsed;
+            hostState.availableHints = [...parsed];
+            closeHostHintModal();
+            updateHostUI();
+            playSound('start');
+            showToast(`Saved ${parsed.length} hints to Host Pool!`);
+        }
+
+        function generateHostBingoCard() {
+            const pool = shuffleArray(getHostAllNumbers());
+            let poolIdx = 0;
+            hostState.cardCells = Array.from({ length: 25 }, (_, i) => {
+                if (i === 12 && hostState.useFreeSpace) {
+                    return {
+                        num: null,
+                        marked: true,
+                        isFree: true,
+                        stampIdx: i % STAMP_STYLES.length
+                    };
+                }
+                const pickedNum = pool[poolIdx++];
+                return {
+                    num: pickedNum,
+                    marked: hostState.calledSet.has(pickedNum),
+                    isFree: false,
+                    stampIdx: i % STAMP_STYLES.length
+                };
+            });
+        }
+
+        function shuffleHostBingoCard(notify = true) {
+            if (hostState.isSpinning) return;
+            generateHostBingoCard();
+            evaluateHostBingo(false);
+            renderHostMasterBoard();
+            updateHostUI();
+            if (notify) {
+                playSound('shuffle');
+                showToast('Generated a new random 5×5 number card!');
+            }
+        }
+
+        function toggleHostFreeSpace() {
+            if (hostState.isSpinning) return;
+            hostState.useFreeSpace = document.getElementById('hostFreeSpaceToggle').checked;
+            shuffleHostBingoCard(false);
+            showToast(hostState.useFreeSpace ? 'Center FREE space enabled' : 'Center FREE space replaced with random number');
+        }
+
+        function renderHostMasterBoard() {
+            const gridEl = document.getElementById('hostMasterGrid');
+            gridEl.innerHTML = '';
+            const latestEntry = hostState.drawnHistory.length > 0
+                ? hostState.drawnHistory[hostState.drawnHistory.length - 1]
+                : null;
+            const latestNum = latestEntry ? latestEntry.num : null;
+
+            hostState.cardCells.forEach((cell, index) => {
+                const isFreeTile = index === 12 && hostState.useFreeSpace;
+                const isWinning = hostState.winningIndices.has(index);
+                const isLatestMatch = !isFreeTile && cell.num === latestNum && cell.marked;
+
+                const cellBtn = document.createElement('button');
+                cellBtn.type = 'button';
+                cellBtn.onclick = () => toggleHostCardTileManual(index);
+
+                let cls = "bingo-tile relative aspect-square rounded-xl font-display font-bold flex flex-col items-center justify-center border-2 overflow-hidden select-none ";
+                if (isWinning) {
+                    cls += "winning-tile text-white font-extrabold ";
+                } else if (isLatestMatch) {
+                    cls += "latest-called-cell bg-slate-800 border-amber-300 text-white shadow-lg ";
+                } else if (cell.marked) {
+                    cls += "bg-slate-800/95 border-pink-500/80 shadow-md ";
+                } else if (isFreeTile) {
+                    cls += "bg-gradient-to-br from-amber-500/25 to-orange-600/25 border-amber-400/60 ";
+                } else {
+                    cls += "bg-slate-800/85 hover:bg-slate-750 border-slate-700/90 hover:border-indigo-400/70 ";
+                }
+
+                cellBtn.className = cls;
+
+                if (isFreeTile) {
+                    cellBtn.innerHTML = `
+                        <span class="relative z-10 text-xs sm:text-sm font-extrabold text-amber-300 tracking-wide">★ FREE ★</span>
+                    `;
+                } else {
+                    const numSpan = document.createElement('span');
+                    numSpan.className = `relative z-10 text-lg sm:text-2xl font-extrabold leading-none ${
+                        cell.marked ? 'text-white drop-shadow' : 'text-slate-100'
+                    }`;
+                    numSpan.textContent = cell.num;
+                    cellBtn.appendChild(numSpan);
+                }
+
+                if (cell.marked) {
+                    const stampTheme = STAMP_STYLES[cell.stampIdx];
+                    const stampOverlay = document.createElement('div');
+                    stampOverlay.className = `animate-stamp absolute inset-1 rounded-lg bg-gradient-to-br ${stampTheme.bg} opacity-85 border-2 ${stampTheme.border} flex items-center justify-center pointer-events-none shadow-inner`;
+                    stampOverlay.innerHTML = `
+                        <svg class="w-4/5 h-4/5 text-white/35" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round">
+                            <line x1="20" y1="20" x2="80" y2="80" />
+                            <line x1="80" y1="20" x2="20" y2="80" />
+                        </svg>
+                    `;
+                    cellBtn.appendChild(stampOverlay);
+                }
+
+                if (isLatestMatch) {
+                    const badge = document.createElement('span');
+                    badge.className = "absolute top-0.5 right-0.5 z-20 px-1 py-0.2 bg-yellow-300 text-slate-950 text-[8px] font-extrabold rounded-full shadow";
+                    badge.textContent = "HIT!";
+                    cellBtn.appendChild(badge);
+                }
+
+                gridEl.appendChild(cellBtn);
+            });
+        }
+
+        function toggleHostCardTileManual(index) {
+            if (hostState.isSpinning) return;
+            const cell = hostState.cardCells[index];
+            cell.marked = !cell.marked;
+            if (cell.marked) {
+                cell.stampIdx = Math.floor(Math.random() * STAMP_STYLES.length);
+                playSound('stamp');
+            } else {
+                playSound('unstamp');
+            }
+
+            evaluateHostBingo(true);
+            renderHostMasterBoard();
+            updateHostUI();
+        }
+
+        function evaluateHostBingo(triggerEffects = true) {
+            const winningLines = [
+                [0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24],
+                [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
+                [0, 6, 12, 18, 24], [4, 8, 12, 16, 20]
+            ];
+
+            const prevLines = hostState.completedLines;
+            let count = 0;
+            const winSet = new Set();
+
+            winningLines.forEach(line => {
+                if (line.every(idx => hostState.cardCells[idx] && hostState.cardCells[idx].marked)) {
+                    count++;
+                    line.forEach(idx => winSet.add(idx));
+                }
+            });
+
+            hostState.completedLines = count;
+            hostState.winningIndices = winSet;
+
+            const badge = document.getElementById('hostBingoStatusBadge');
+            if (count > 0) {
+                badge.classList.remove('hidden');
+                badge.textContent = `🏆 HOST BINGO! ${count} ${count === 1 ? 'LINE' : 'LINES'}!`;
+                if (triggerEffects && count > prevLines) {
+                    playSound('bingo');
+                    triggerConfettiBlast();
+                }
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function updateHostUI() {
+            const totalCount = hostState.endNum - hostState.startNum + 1;
+            const eliminatedCount = hostState.calledSet.size;
+            const remainingCount = totalCount - eliminatedCount;
+            const stampedCardCount = hostState.cardCells.filter(c => c.marked).length;
+
+            document.getElementById('wheelRemainingBadge').textContent = `Remaining on Wheel: ${remainingCount} / ${totalCount}`;
+            document.getElementById('wheelEliminatedBadge').textContent = `Eliminated: ${eliminatedCount}`;
+            document.getElementById('hostCardStampedCount').textContent = `${stampedCardCount} / 25`;
+            document.getElementById('hostBingoLinesCount').textContent = hostState.completedLines;
+            document.getElementById('hostHistoryTotalBadge').textContent = `${eliminatedCount} drawn`;
+
+            // Latest number badge & Hint Card
+            const badgeEl = document.getElementById('hostLatestBadge');
+            const labelEl = document.getElementById('hostLatestLabel');
+            const spinBtn = document.getElementById('spinWheelBtn');
+            const hintTextEl = document.getElementById('hostCurrentHintText');
+            const hintPoolCounterEl = document.getElementById('hostHintPoolCounter');
+
+            hintPoolCounterEl.textContent = `Hints left in pool: ${hostState.availableHints.length} / ${hostState.hintPool.length}`;
+            if (hostState.currentHint) {
+                hintTextEl.textContent = `“${hostState.currentHint}”`;
+                hintTextEl.className = "font-display text-lg sm:text-xl font-bold text-amber-300 leading-snug min-h-[2rem] flex items-center";
+            } else {
+                hintTextEl.textContent = "Spin the wheel to reveal a random hint!";
+                hintTextEl.className = "font-display text-sm sm:text-base font-semibold text-slate-400 leading-snug min-h-[2rem] flex items-center";
+            }
+
+            if (hostState.drawnHistory.length > 0) {
+                const latestObj = hostState.drawnHistory[hostState.drawnHistory.length - 1];
+                const latest = latestObj.num;
+                const prefix = getBingoLetterPrefix(latest);
+                const onCard = hostState.cardCells.some(c => !c.isFree && c.num === latest);
+                badgeEl.textContent = latest;
+                badgeEl.className = "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-pink-600 border-2 border-amber-200 flex items-center justify-center font-display text-3xl sm:text-4xl font-extrabold text-slate-950 shadow-lg shrink-0";
+                labelEl.textContent = `${prefix}-${latest} removed from wheel${onCard ? ' • HIT on Host 5×5!' : ''}`;
+            } else {
+                badgeEl.textContent = "?";
+                badgeEl.className = "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-700 flex items-center justify-center font-display text-3xl sm:text-4xl font-extrabold text-slate-400 shadow-inner shrink-0";
+                labelEl.textContent = "Ready to spin!";
+            }
+
+            spinBtn.disabled = remainingCount === 0 || hostState.isSpinning;
+
+            // All Called Numbers + Hints History Log (newest first for immediate visibility)
+            const historyStrip = document.getElementById('hostHistoryStrip');
+            historyStrip.innerHTML = '';
+            if (hostState.drawnHistory.length === 0) {
+                historyStrip.innerHTML = '<span class="text-xs text-slate-500 italic">No numbers drawn yet — spin the wheel!</span>';
+            } else {
+                const ordered = [...hostState.drawnHistory].reverse();
+                ordered.forEach((entry, idx) => {
+                    const pill = document.createElement('span');
+                    const prefix = getBingoLetterPrefix(entry.num);
+                    if (idx === 0) {
+                        pill.className = "px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-display text-xs sm:text-sm font-extrabold shadow shrink-0";
+                    } else {
+                        pill.className = "px-2 py-0.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 font-display text-xs font-bold shrink-0";
+                    }
+                    pill.textContent = `${prefix}-${entry.num} (${entry.hint})`;
+                    historyStrip.appendChild(pill);
+                });
+            }
+        }
+
+        /**
+         * ============================================================================
+         * HTML5 CANVAS SPINNING WHEEL RENDERING & PHYSICS (ELIMINATION MODE)
+         * ============================================================================
+         */
+        function resizeHostWheelCanvas() {
+            const canvas = document.getElementById('hostWheelCanvas');
+            const wrapper = document.getElementById('wheelWrapper');
+            if (!canvas || !wrapper) return;
+            const size = wrapper.clientWidth || 320;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+        }
+
+        function getWheelSegments() {
+            // Always returns only the remaining uncalled numbers so drawn numbers are eliminated off the wheel
+            return getHostRemainingNumbers();
+        }
+
+        function drawHostWheel() {
+            const canvas = document.getElementById('hostWheelCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(cx, cy) - 10;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const segments = getWheelSegments();
+            const count = segments.length;
+
+            // Empty wheel state (All numbers drawn & eliminated)
+            if (count === 0) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = "#1e293b";
+                ctx.fill();
+                ctx.lineWidth = 8;
+                ctx.strokeStyle = "#facc15";
+                ctx.stroke();
+
+                ctx.fillStyle = "#f8fafc";
+                ctx.font = `bold ${Math.round(radius * 0.14)}px Fredoka, sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("ALL NUMBERS DRAWN!", cx, cy - 12);
+                ctx.font = `600 ${Math.round(radius * 0.09)}px Plus Jakarta Sans, sans-serif`;
+                ctx.fillStyle = "#94a3b8";
+                ctx.fillText("Click Reset to restore wheel", cx, cy + 18);
+                return;
+            }
+
+            const arc = (Math.PI * 2) / count;
+            // Top pointer sits at -Math.PI / 2 (12 o'clock)
+            const startOffset = -Math.PI / 2 + hostState.wheelAngle;
+
+            for (let i = 0; i < count; i++) {
+                const num = segments[i];
+                const angleStart = startOffset + i * arc;
+                const angleEnd = angleStart + arc;
+
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, angleStart, angleEnd);
+                ctx.closePath();
+
+                ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+                ctx.fill();
+
+                if (count > 1 && count <= 75) {
+                    ctx.lineWidth = count > 45 ? 1 : 2;
+                    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+                    ctx.stroke();
+                }
+
+                // Draw segment number label
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angleStart + arc / 2);
+                ctx.textAlign = "right";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#ffffff";
+
+                const fontSize = count === 1 ? radius * 0.22
+                    : count <= 15 ? radius * 0.13
+                    : count <= 35 ? radius * 0.095
+                    : count <= 60 ? radius * 0.072
+                    : radius * 0.058;
+
+                ctx.font = `bold ${Math.max(9, Math.round(fontSize))}px Fredoka, sans-serif`;
+                ctx.fillText(String(num), count === 1 ? radius * 0.65 : radius - 14, 0);
+                ctx.restore();
+            }
+
+            // Outer Gold Carnival Rim
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = "#facc15";
+            ctx.stroke();
+
+            // Center Hub Cap
+            const hubRadius = radius * 0.18;
+            ctx.beginPath();
+            ctx.arc(cx, cy, hubRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#0f172a";
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#facc15";
+            ctx.stroke();
+
+            ctx.fillStyle = "#facc15";
+            ctx.font = `bold ${Math.round(hubRadius * 0.55)}px Fredoka, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("SPIN", cx, cy + 1);
+        }
+
+        function spinHostWheel() {
+            if (hostState.isSpinning) return;
+
+            const remaining = getHostRemainingNumbers();
+            if (remaining.length === 0) {
+                showToast('All numbers in this range have been drawn! Click Reset.');
+                return;
+            }
+
+            // Pick a guaranteed remaining number uniformly at random
+            const chosenNumber = remaining[Math.floor(Math.random() * remaining.length)];
+            const segments = getWheelSegments();
+            const targetIndex = segments.indexOf(chosenNumber);
+            const count = segments.length;
+            const arc = (Math.PI * 2) / count;
+
+            const jitter = (Math.random() - 0.5) * (arc * 0.65);
+            const desiredModAngle = (Math.PI * 2 - ((targetIndex + 0.5) * arc + jitter)) % (Math.PI * 2);
+
+            const currentMod = ((hostState.wheelAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+            let delta = desiredModAngle - currentMod;
+            if (delta < 0) delta += Math.PI * 2;
+
+            const extraSpins = (5 + Math.floor(Math.random() * 3)) * Math.PI * 2;
+            const startAngle = hostState.wheelAngle;
+            const totalRotation = extraSpins + delta;
+            const duration = 3400;
+            const startTime = performance.now();
+
+            hostState.isSpinning = true;
+            hostState.lastTickIndex = -1;
+            updateHostUI();
+
+            function step(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(1, elapsed / duration);
+                const easeOut = 1 - Math.pow(1 - t, 3);
+
+                hostState.wheelAngle = startAngle + totalRotation * easeOut;
+
+                const normalizedPointerAngle = (((-hostState.wheelAngle) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                const currentSegIdx = Math.floor(normalizedPointerAngle / arc) % count;
+                if (currentSegIdx !== hostState.lastTickIndex) {
+                    hostState.lastTickIndex = currentSegIdx;
+                    playSound('tick');
+                    const ptr = document.getElementById('wheelPointer');
+                    if (ptr) {
+                        ptr.classList.remove('pointer-ticking');
+                        void ptr.offsetWidth;
+                        ptr.classList.add('pointer-ticking');
+                    }
+                }
+
+                drawHostWheel();
+
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    hostState.isSpinning = false;
+                    completeHostNumberDraw(chosenNumber);
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+
+        function completeHostNumberDraw(drawnNum) {
+            // Draw a random hint from the pool & eliminate drawn number from the wheel
+            const drawnHint = drawRandomHostHint();
+            hostState.calledSet.add(drawnNum);
+            hostState.drawnHistory.push({ num: drawnNum, hint: drawnHint });
+
+            // Auto-stamp matching square on the Host's 5x5 random number board
+            let hitHostCard = false;
+            hostState.cardCells.forEach(cell => {
+                if (!cell.isFree && cell.num === drawnNum) {
+                    cell.marked = true;
+                    cell.stampIdx = Math.floor(Math.random() * STAMP_STYLES.length);
+                    hitHostCard = true;
+                }
+            });
+
+            playSound(hitHostCard ? 'bingo' : 'stamp');
+            triggerConfettiBlast();
+
+            evaluateHostBingo(true);
+            renderHostMasterBoard();
+            updateHostUI();
+            drawHostWheel();
+            showDrawnSpotlight(drawnNum, drawnHint, hitHostCard);
+        }
+
+        let spotlightTimer = null;
+        function showDrawnSpotlight(num, hint, hitHostCard = false) {
+            const modal = document.getElementById('drawnSpotlightModal');
+            const prefix = getBingoLetterPrefix(num);
+            document.getElementById('spotlightBingoLetter').textContent = hitHostCard
+                ? `COLUMN ${prefix} • HIT ON HOST 5×5!`
+                : `COLUMN ${prefix} • ELIMINATED FROM WHEEL`;
+            document.getElementById('spotlightNumberValue').textContent = num;
+            document.getElementById('spotlightHintText').textContent = `“${hint}”`;
+            modal.classList.remove('hidden');
+
+            clearTimeout(spotlightTimer);
+            spotlightTimer = setTimeout(() => {
+                closeDrawnSpotlight();
+            }, 3400);
+        }
+
+        function closeDrawnSpotlight() {
+            document.getElementById('drawnSpotlightModal').classList.add('hidden');
+        }
+
+        // Spacebar shortcut to spin wheel when in Party Host Mode
+        window.addEventListener('keydown', (e) => {
+            if (state.appView === 'host' && e.code === 'Space') {
+                const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+                    e.preventDefault();
+                    if (!document.getElementById('drawnSpotlightModal').classList.contains('hidden')) {
+                        closeDrawnSpotlight();
+                    } else {
+                        spinHostWheel();
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (state.appView === 'host') {
+                resizeHostWheelCanvas();
+                drawHostWheel();
+            }
+        });
+
+        // Non-blocking Toast Message Helper
+        let toastTimeout;
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const textEl = document.getElementById('toastText');
+            textEl.textContent = message;
+
+            container.classList.remove('opacity-0', 'translate-y-4');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                container.classList.add('opacity-0', 'translate-y-4');
+            }, 2600);
+        }
+
+        // Boot application on window load
+        window.onload = initApp;
+    </script>
+</body>
+</html>
